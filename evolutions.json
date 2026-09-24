@@ -1,0 +1,100 @@
+{
+  "skill_id": "weitoutiao-publisher",
+  "version": "1.0.0",
+  "updated_at": "2026-09-24T03:57:19.312962+00:00",
+  "summary": "当 CDP /navigate 命令超时无响应时，改用 /eval 执行 location.href 跳转，等5秒后检查URL确认成功。；检测到 CDP_DOWN 时别急着 kill 进程，先查现有",
+  "entries": [
+    {
+      "id": "ev_0cc4f196",
+      "source": "execution_failure",
+      "timestamp": "2026-09-24T03:51:38.904036+00:00",
+      "context": "[execution_failure] `\\uXXXX` Unicode 转义，禁止直接发送中文字符串到 CDP。\n\n使用辅助脚本 `scripts/gen_weitoutiao_js.py`：\n``... | [execution_failure] shell operation execution error, execution: execute_cmd, reason: execution timeo... | [execution_failure] shell operation execution error, execution: execute_cmd, reason: execution timeo... | [execution_failure] shell operation execution error, execution: execute_cmd, reason: execution timeo... | [execution_failure] shell operation execution error, execution: execute_cmd, reason: execution timeo... | [execution_failure] {'error': 'Failed to fetch'} | [execution_failure] Exit code 1\n'GIT_TERMINAL_PROMPT' is not recognized as an internal or external c... | [execution_failure] Exit code 1\ngit : The term 'git' is not recognized as the name of a cmdlet, func...",
+      "change": {
+        "section": "Troubleshooting",
+        "action": "append",
+        "content": "### /navigate 超时替代方案\n\n**症状**：`POST /navigate?target={id}` 超时（10-20s 无响应）\n\n**替代方案**：用 `/eval` 执行 JS 跳转，更可靠：\n```javascript\n(function(){location.href='https://mp.toutiao.com/profile_v4/weitoutiao/publish';return 'navigating'})()\n```\n通过 `/eval` 发送此 JS，等待 5 秒后检查 `location.href` 确认跳转成功。此方法绕过 `/navigate` 阻塞问题。",
+        "target": "body"
+      },
+      "applied": false,
+      "score": 0.65,
+      "summary": "当 CDP /navigate 命令超时无响应时，改用 /eval 执行 location.href 跳转，等5秒后检查URL确认成功。",
+      "root_cause": "CDP /navigate 端点在页面加载慢时会阻塞超时，但 /eval 通道仍可用且不阻塞。",
+      "usage_stats": {
+        "times_presented": 0,
+        "times_used": 0,
+        "times_positive": 0,
+        "times_negative": 0
+      },
+      "review_status": "suggest"
+    },
+    {
+      "id": "ev_6c790d7c",
+      "source": "execution_failure",
+      "timestamp": "2026-09-24T03:51:38.906454+00:00",
+      "context": "[execution_failure] `\\uXXXX` Unicode 转义，禁止直接发送中文字符串到 CDP。\n\n使用辅助脚本 `scripts/gen_weitoutiao_js.py`：\n``... | [execution_failure] shell operation execution error, execution: execute_cmd, reason: execution timeo... | [execution_failure] shell operation execution error, execution: execute_cmd, reason: execution timeo... | [execution_failure] shell operation execution error, execution: execute_cmd, reason: execution timeo... | [execution_failure] shell operation execution error, execution: execute_cmd, reason: execution timeo... | [execution_failure] {'error': 'Failed to fetch'} | [execution_failure] Exit code 1\n'GIT_TERMINAL_PROMPT' is not recognized as an internal or external c... | [execution_failure] Exit code 1\ngit : The term 'git' is not recognized as the name of a cmdlet, func...",
+      "change": {
+        "section": "Instructions",
+        "action": "append",
+        "content": "### CDP 断线快速恢复流程\n\n检测到 `CDP_DOWN` 时按以下顺序恢复（勿跳步）：\n1. **查现有 Proxy**：`GET http://localhost:3456/targets`，返回非空则直接复用\n2. **查 Chrome 进程**：`tasklist /fi \"imagename eq chrome.exe\"`，若在则无需重启 Chrome\n3. **仅当 1、2 均失败**：kill node + chrome，用 `--user-data-dir` 重启\n4. **验证**：再次 `GET /targets` 确认非空\n\n恢复后继续发布流程，Chrome 保持登录态无需重新登录。",
+        "target": "body"
+      },
+      "applied": false,
+      "score": 0.65,
+      "summary": "检测到 CDP_DOWN 时别急着 kill 进程，先查现有 Proxy 是否可用、Chrome 是否还在，按顺序恢复避免丢失登录态。",
+      "root_cause": "Skill 仅声明 CDP 前置条件但无断线恢复流程，导致每次 CDP_DOWN 都从零重启，丢失 Chrome 登录态。",
+      "usage_stats": {
+        "times_presented": 0,
+        "times_used": 0,
+        "times_positive": 0,
+        "times_negative": 0
+      },
+      "review_status": "suggest"
+    },
+    {
+      "id": "ev_d145ab0e",
+      "source": "execution_failure",
+      "timestamp": "2026-09-24T03:51:38.906997+00:00",
+      "context": "[execution_failure] `\\uXXXX` Unicode 转义，禁止直接发送中文字符串到 CDP。\n\n使用辅助脚本 `scripts/gen_weitoutiao_js.py`：\n``... | [execution_failure] shell operation execution error, execution: execute_cmd, reason: execution timeo... | [execution_failure] shell operation execution error, execution: execute_cmd, reason: execution timeo... | [execution_failure] shell operation execution error, execution: execute_cmd, reason: execution timeo... | [execution_failure] shell operation execution error, execution: execute_cmd, reason: execution timeo... | [execution_failure] {'error': 'Failed to fetch'} | [execution_failure] Exit code 1\n'GIT_TERMINAL_PROMPT' is not recognized as an internal or external c... | [execution_failure] Exit code 1\ngit : The term 'git' is not recognized as the name of a cmdlet, func...",
+      "change": {
+        "section": "Troubleshooting",
+        "action": "append",
+        "content": "### Chrome 远程调试启动失败\n\n**症状**：`DevTools remote debugging requires a non-default data directory`\n\n**解决**：启动时必须加 `--user-data-dir`：\n```powershell\n\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" `\n  --remote-debugging-port=9222 `\n  --user-data-dir=\"C:\\Users\\28470\\chrome-debug-profile\"\n```\n首次启动可能超时 15-20s（Chrome 初始化），属正常，等待即可。",
+        "target": "body"
+      },
+      "applied": false,
+      "score": 0.65,
+      "summary": "Chrome 远程调试启动报 non-default data directory 错误时，必须加 --user-data-dir 指定独立目录。",
+      "root_cause": "Chrome 远程调试模式要求非默认用户数据目录，Skill 未提供完整启动命令导致启动失败。",
+      "usage_stats": {
+        "times_presented": 0,
+        "times_used": 0,
+        "times_positive": 0,
+        "times_negative": 0
+      },
+      "review_status": "suggest"
+    },
+    {
+      "id": "ev_9a160615",
+      "source": "execution_failure",
+      "timestamp": "2026-09-24T03:57:19.276902+00:00",
+      "context": "[execution_failure] 1\t(function(){var e=document.querySelector('.ProseMirror');if(!e) return JSON.stringify({error:'no editor'});e.focus();var text='# AI\\u751f\\u6210\n     2\t\\u542f\\u5883GX7\\u9884\\u552e18\\u5c0f\\u65f6\\u5c0f\\u8ba2\\u78342\\u4e07\\u53f0\\uff0c24.99\\u4e07\\u8d77\\u914d\\u534e\\u4e3a\\u4e7e\\u5d11\\u667a\\u9a7e\\u3002\n     3\t\n     4\t\\u8fd9\\u8f66\\u4ec0\\u4e48\\u6765\\u5934\\uff1f\\u4e2d\\u5927\\u578b\\u4e94\\u5ea7\\u589e\\u7a",
+      "change": {
+        "section": "Troubleshooting",
+        "action": "append",
+        "content": "### JS 字面换行符导致 CDP `/eval` 返回 \"Uncaught\"\n\n**症状**：执行 `wt_content.js` 时 CDP 返回 `{\"error\":\"Uncaught\"}`，但 JS 语法表面看起来正常。\n\n**原因**：`gen_weitoutiao_js.py` 生成的 JS 中，多行文本的字面换行符（`0x0A` 字节）直接出现在单引号字符串内。JavaScript 单引号字符串不允许跨行，导致语法错误。\n\n**排查方法**：用 `read_file` 打开生成的 `.js` 文件，若看到字符串跨多行（而非 `\\n` 转义），即为该问题。\n\n**解决**：\n1. 在生成 JS 前将内容中的 `\\r\\n` 和 `\\n` 替换为 `\\\\n` 转义序列\n2. 或手动修复：读取 .js 文件，将字符串内的字面换行替换为 `\\n`\n3. 验证修复后文件应为单行 JS（无跨行字符串）",
+        "target": "body"
+      },
+      "applied": false,
+      "score": 0.65,
+      "summary": "微头条内容含换行时，生成的JS会有字面换行符导致CDP报Uncaught错误，必须将换行转义为\\n再执行。",
+      "root_cause": "gen_weitoutiao_js.py 生成 JS 时未将内容中的换行符转义为 \\n，导致单引号字符串内出现字面换行，JavaScript 语法错误。",
+      "usage_stats": {
+        "times_presented": 0,
+        "times_used": 0,
+        "times_positive": 0,
+        "times_negative": 0
+      },
+      "review_status": "suggest"
+    }
+  ]
+}

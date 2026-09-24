@@ -7,10 +7,20 @@ import sys
 
 
 def to_unicode_escape(text):
-    "将中文和非ASCII字符转为 \\uXXXX 转义，ASCII 字符保留原样"
+    "将中文和非ASCII字符转为 \\uXXXX 转义，ASCII 字符保留原样。\n    同时转义换行符、回车、制表符、单引号和反斜杠，\n    防止 JS 单引号字符串语法错误。"
     result = []
     for ch in text:
-        if ord(ch) > 127:
+        if ch == '\n':
+            result.append('\\n')
+        elif ch == '\r':
+            result.append('\\r')
+        elif ch == '\t':
+            result.append('\\t')
+        elif ch == "'":
+            result.append("\\'")
+        elif ch == '\\':
+            result.append('\\\\')
+        elif ord(ch) > 127:
             result.append(f'\\u{ord(ch):04x}')
         else:
             result.append(ch)
@@ -40,7 +50,6 @@ def main():
     parser.add_argument('--output', type=str, required=True, help='输出 JS 文件路径')
     args = parser.parse_args()
 
-    # 获取内容
     if args.file:
         with open(args.file, 'r', encoding='utf-8') as f:
             content = f.read().strip()
@@ -50,14 +59,11 @@ def main():
         print("错误：必须提供 --content 或 --file 参数")
         sys.exit(1)
 
-    # 生成 JS
     js = generate_js(content)
 
-    # 写入文件
     with open(args.output, 'w', encoding='utf-8') as f:
         f.write(js)
 
-    # 统计
     char_count = len(content)
     chinese_count = sum(1 for ch in content if "一" <= ch <= "鿿")
     js_len = len(js)
